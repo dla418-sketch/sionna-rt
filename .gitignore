@@ -1,0 +1,12 @@
+build/
+dist/
+*.pyc
+__pycache__/
+*.egg
+*.egg-info/
+.eggs/
+.ipynb_checkpoints
+*.nsys-rep
+/data1/mh/sionna/sionna-rt/tutorials/build code/paper
+*.npy
+*.npz

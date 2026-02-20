@@ -1,0 +1,27 @@
+<scene version="2.1.0">
+
+<!-- Materials -->
+
+	<bsdf type="itu-radio-material" id="concrete">
+        <string name="type" value="concrete"/>
+        <float name="thickness" value="0.1"/>
+	</bsdf>
+
+	<bsdf type="itu-radio-material" id="brick">
+        <string name="type" value="brick"/>
+        <float name="thickness" value="0.1"/>
+	</bsdf>
+
+<!-- Shapes -->
+
+	<shape type="ply" id="mesh-floor">
+		<string name="filename" value="meshes/floor.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="concrete" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-wall">
+		<string name="filename" value="meshes/wall.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="brick" name="bsdf"/>
+	</shape>
+</scene>

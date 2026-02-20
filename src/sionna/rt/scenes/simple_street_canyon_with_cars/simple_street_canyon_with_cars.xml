@@ -1,0 +1,108 @@
+<scene version="2.1.0">
+
+<!-- Materials -->
+
+	<bsdf type="itu-radio-material" id="glass">
+        <string name="type" value="glass"/>
+        <float name="thickness" value="0.1"/>
+	</bsdf>
+	<bsdf type="itu-radio-material" id="wood">
+        <string name="type" value="wood"/>
+        <float name="thickness" value="0.1"/>
+	</bsdf>
+	<bsdf type="itu-radio-material" id="marble">
+        <string name="type" value="marble"/>
+        <float name="thickness" value="0.1"/>
+	</bsdf>
+	<bsdf type="itu-radio-material" id="brick">
+        <string name="type" value="brick"/>
+        <float name="thickness" value="0.1"/>
+	</bsdf>
+	<bsdf type="itu-radio-material" id="concrete">
+        <string name="type" value="concrete"/>
+        <float name="thickness" value="0.1"/>
+	</bsdf>
+	<bsdf type="itu-radio-material" id="metal">
+        <string name="type" value="metal"/>
+        <float name="thickness" value="0.1"/>
+	</bsdf>
+
+<!-- Shapes -->
+
+	<shape type="ply" id="mesh-building_1" name="mesh-building_1">
+		<string name="filename" value="meshes/building_1.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="glass" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-building_6" name="mesh-building_6">
+		<string name="filename" value="meshes/building_6.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="wood" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-building_5" name="mesh-building_5">
+		<string name="filename" value="meshes/building_5.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="glass" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-building_4" name="mesh-building_4">
+		<string name="filename" value="meshes/building_4.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="marble" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-building_3" name="mesh-building_3">
+		<string name="filename" value="meshes/building_3.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="marble" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-building_2" name="mesh-building_2">
+		<string name="filename" value="meshes/building_2.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="brick" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-floor" name="mesh-floor">
+		<string name="filename" value="meshes/floor.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="concrete" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-car_3" name="mesh-car_3">
+		<string name="filename" value="meshes/car_3.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="metal" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-car_4" name="mesh-car_4">
+		<string name="filename" value="meshes/car_4.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="metal" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-car_5" name="mesh-car_5">
+		<string name="filename" value="meshes/car_5.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="metal" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-car_2" name="mesh-car_2">
+		<string name="filename" value="meshes/car_2.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="metal" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-car_1" name="mesh-car_1">
+		<string name="filename" value="meshes/car_1.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="metal" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-car_6" name="mesh-car_6">
+		<string name="filename" value="meshes/car_6.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="metal" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-car_7" name="mesh-car_7">
+		<string name="filename" value="meshes/car_7.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="metal" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-car_8" name="mesh-car_8">
+		<string name="filename" value="meshes/car_8.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="metal" name="bsdf"/>
+	</shape>
+
+</scene>
