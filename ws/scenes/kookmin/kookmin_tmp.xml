@@ -12,8 +12,9 @@
 
 
 
-	<bsdf type="diffuse" id="mat-itu" name="mat-itu">
-		<rgb value="0.086500 0.090842 0.088656" name="reflectance" />
+	<bsdf type="itu-radio-material" id="mat-itu">
+		<string name="type" value="concrete"/>
+		<float name="thickness" value="0.2"/>
 	</bsdf>
 
 
