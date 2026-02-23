@@ -1,0 +1,17 @@
+<scene version="2.1.0">
+
+<!-- Materials -->
+
+	<bsdf type="itu-radio-material" id="concrete">
+        <string name="type" value="concrete"/>
+        <float name="thickness" value="0.1"/>
+	</bsdf>
+
+<!-- Shapes -->
+
+	<shape type="ply" id="mesh-wedge">
+		<string name="filename" value="meshes/wedge.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="concrete" name="bsdf"/>
+	</shape>
+</scene>

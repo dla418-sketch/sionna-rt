@@ -1,0 +1,72 @@
+<scene version="2.1.0">
+
+<!-- Defaults, these can be set via the command line: -Darg=value -->
+
+
+<!-- Camera and Rendering Parameters -->
+
+	<integrator type="path" id="elm__0" name="elm__0">
+		<integer name="max_depth" value="12"/>
+	</integrator>
+
+<!-- Materials -->
+
+	<bsdf type="diffuse" id="mat-itu" name="mat-itu">
+		<rgb value="0.086500 0.090842 0.088656" name="reflectance"/>
+	</bsdf>
+
+<!-- Emitters -->
+
+
+<!-- Shapes -->
+
+	<shape type="ply" id="elm__2" name="elm__2">
+		<string name="filename" value="meshes/map_8_osm_buildings-itu.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="mat-itu" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="elm__3" name="elm__3">
+		<string name="filename" value="meshes/map_8_osm_buildings-itu-001.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="mat-itu" name="bsdf"/>
+	</shape>
+	<shape type="shapegroup" id="mesh-map_8_osm_roads_primary" name="mesh-map_8_osm_roads_primary">
+		<shape type="ply" name="map_8_osm_roads_primary">
+			<string name="filename" value="meshes/map_8_osm_roads_primary.ply"/>
+			<ref id="mat-itu" name="bsdf"/>
+		</shape>
+	</shape>
+	<shape type="instance" id="elm__5" name="elm__5">
+		<ref id="mesh-map_8_osm_roads_primary" name="shape"/>
+		<transform name="to_world">
+			<matrix value="1.000000 0.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.300000 0.000000 -1.000000 0.000000 0.000000 0.000000 0.000000 0.000000 1.000000"/>
+		</transform>
+	</shape>
+	<shape type="shapegroup" id="mesh-map_8_osm_roads_service" name="mesh-map_8_osm_roads_service">
+		<shape type="ply" name="map_8_osm_roads_service">
+			<string name="filename" value="meshes/map_8_osm_roads_service.ply"/>
+			<ref id="mat-itu" name="bsdf"/>
+		</shape>
+	</shape>
+	<shape type="instance" id="elm__7" name="elm__7">
+		<ref id="mesh-map_8_osm_roads_service" name="shape"/>
+		<transform name="to_world">
+			<matrix value="1.000000 0.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.300000 0.000000 -1.000000 0.000000 0.000000 0.000000 0.000000 0.000000 1.000000"/>
+		</transform>
+	</shape>
+	<shape type="shapegroup" id="mesh-map_8_osm_paths_footway" name="mesh-map_8_osm_paths_footway">
+		<shape type="ply" name="map_8_osm_paths_footway">
+			<string name="filename" value="meshes/map_8_osm_paths_footway.ply"/>
+			<ref id="mat-itu" name="bsdf"/>
+		</shape>
+	</shape>
+	<shape type="instance" id="elm__9" name="elm__9">
+		<ref id="mesh-map_8_osm_paths_footway" name="shape"/>
+		<transform name="to_world">
+			<matrix value="1.000000 0.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.300000 0.000000 -1.000000 0.000000 0.000000 0.000000 0.000000 0.000000 1.000000"/>
+		</transform>
+	</shape>
+
+<!-- Volumes -->
+
+</scene>

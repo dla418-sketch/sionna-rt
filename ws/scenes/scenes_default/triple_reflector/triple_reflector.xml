@@ -1,0 +1,27 @@
+<scene version="2.1.0">
+
+<!-- Materials -->
+
+	<bsdf type="itu-radio-material" id="metal">
+        <string name="type" value="metal"/>
+        <float name="thickness" value="0.1"/>
+	</bsdf>
+
+<!-- Shapes -->
+
+	<shape type="ply" id="mesh-floor">
+		<string name="filename" value="meshes/floor.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="metal" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-small_reflector">
+		<string name="filename" value="meshes/small_reflector.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="metal" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-large_reflector">
+		<string name="filename" value="meshes/large_reflector.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="metal" name="bsdf"/>
+	</shape>
+</scene>

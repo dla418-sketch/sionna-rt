@@ -1,0 +1,27 @@
+<scene version="2.1.0">
+
+<!-- Materials -->
+
+    <bsdf type="itu-radio-material" id="box-mat">
+        <string name="type" value="metal"/>
+        <float name="thickness" value="1."/>
+    </bsdf>
+
+    <bsdf type="itu-radio-material" id="screen-mat">
+        <string name="type" value="glass"/>
+        <float name="thickness" value="0.01"/>
+    </bsdf>
+
+<!-- Shapes -->
+
+	<shape type="ply" id="mesh-box">
+		<string name="filename" value="meshes/box.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="box-mat" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-screen">
+		<string name="filename" value="meshes/screen.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="screen-mat" name="bsdf"/>
+	</shape>
+</scene>
