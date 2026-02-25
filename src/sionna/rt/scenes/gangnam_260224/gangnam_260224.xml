@@ -1,0 +1,63 @@
+<scene version="2.1.0">
+
+<!-- Defaults, these can be set via the command line: -Darg=value -->
+
+
+<!-- Camera and Rendering Parameters -->
+
+	<integrator type="path" id="elm__0" name="elm__0">
+		<integer name="max_depth" value="12"/>
+	</integrator>
+
+<!-- Materials -->
+
+	<bsdf type="diffuse" id="mat-itu_concrete" name="mat-itu_concrete">
+		<rgb value="1.000000 0.500000 0.200000" name="reflectance"/>
+	</bsdf>
+	<bsdf type="diffuse" id="mat-itu_metal" name="mat-itu_metal">
+		<rgb value="0.290000 0.250000 0.210000" name="reflectance"/>
+	</bsdf>
+
+<!-- Emitters -->
+
+
+<!-- Shapes -->
+
+	<shape type="ply" id="mesh-buildings-itu_concrete" name="mesh-buildings-itu_concrete">
+		<string name="filename" value="meshes/buildings-itu_concrete.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="mat-itu_concrete" name="bsdf"/>
+	</shape>
+	<shape type="ply" id="mesh-buildings-itu_metal" name="mesh-buildings-itu_metal">
+		<string name="filename" value="meshes/buildings-itu_metal.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="mat-itu_metal" name="bsdf"/>
+	</shape>
+	<shape type="shapegroup" id="mesh-roads_residential" name="mesh-roads_residential">
+		<shape type="ply" name="roads_residential">
+			<string name="filename" value="meshes/roads_residential.ply"/>
+			<ref id="mat-itu_concrete" name="bsdf"/>
+		</shape>
+	</shape>
+	<shape type="instance" id="elm__6" name="elm__6">
+		<ref id="mesh-roads_residential" name="shape"/>
+		<transform name="to_world">
+			<matrix value="1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.300000 0.000000 0.000000 0.000000 1.000000"/>
+		</transform>
+	</shape>
+	<shape type="shapegroup" id="mesh-roads_primary" name="mesh-roads_primary">
+		<shape type="ply" name="roads_primary">
+			<string name="filename" value="meshes/roads_primary.ply"/>
+			<ref id="mat-itu_concrete" name="bsdf"/>
+		</shape>
+	</shape>
+	<shape type="instance" id="elm__8" name="elm__8">
+		<ref id="mesh-roads_primary" name="shape"/>
+		<transform name="to_world">
+			<matrix value="1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.300000 0.000000 0.000000 0.000000 1.000000"/>
+		</transform>
+	</shape>
+
+<!-- Volumes -->
+
+</scene>

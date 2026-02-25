@@ -1,0 +1,106 @@
+<?xml version='1.0' encoding='utf-8'?>
+<scene version="2.1.0">
+
+
+
+
+
+
+	<integrator type="path" id="elm__0" name="elm__0">
+		<integer name="max_depth" value="12" />
+	</integrator>
+
+
+
+	<bsdf type="diffuse" id="mat-itu_concrete" name="mat-itu_concrete">
+		<rgb value="0.086500 0.090842 0.088656" name="reflectance" />
+	</bsdf>
+	<bsdf type="diffuse" id="mat-itu_wood" name="mat-itu_wood">
+		<rgb value="0.020000 0.208000 0.007000" name="reflectance" />
+	</bsdf>
+	<bsdf type="diffuse" id="mat-itu_plasterboard" name="mat-itu_plasterboard">
+		<rgb value="1.000000 0.500000 0.200000" name="reflectance" />
+	</bsdf>
+	<bsdf type="diffuse" id="mat-itu_glass" name="mat-itu_glass">
+		<rgb value="0.182748 0.558000 0.022903" name="reflectance" />
+	</bsdf>
+	<shape type="ply" id="mesh-None_forest_001" name="mesh-None_forest_001">
+		<string name="filename" value="meshes/None_forest_001.ply" />
+		<boolean name="face_normals" value="true" />
+		<ref id="mat-itu_wood" name="bsdf" />
+	</shape>
+	<shape type="ply" id="mesh-None_forest_002" name="mesh-None_forest_002">
+		<string name="filename" value="meshes/None_forest_002.ply" />
+		<boolean name="face_normals" value="true" />
+		<ref id="mat-itu_wood" name="bsdf" />
+	</shape>
+	<shape type="ply" id="mesh-None_buildings_002-plasterboard" name="mesh-None_buildings_002-plasterboard">
+		<string name="filename" value="meshes/None_buildings_002-plasterboard.ply" />
+		<boolean name="face_normals" value="true" />
+		<ref id="mat-itu_plasterboard" name="bsdf" />
+	</shape>
+	<shape type="ply" id="mesh-None_buildings_002-plasterboard-001" name="mesh-None_buildings_002-plasterboard-001">
+		<string name="filename" value="meshes/None_buildings_002-plasterboard-001.ply" />
+		<boolean name="face_normals" value="true" />
+		<ref id="mat-itu_plasterboard" name="bsdf" />
+	</shape>
+	<shape type="ply" id="mesh-None_buildings_001-plasterboard.003" name="mesh-None_buildings_001-plasterboard.003">
+		<string name="filename" value="meshes/None_buildings_001-plasterboard.003.ply" />
+		<boolean name="face_normals" value="true" />
+		<ref id="mat-itu_plasterboard" name="bsdf" />
+	</shape>
+	<shape type="ply" id="mesh-None_buildings_001-plasterboard" name="mesh-None_buildings_001-plasterboard">
+		<string name="filename" value="meshes/None_buildings_001-plasterboard.ply" />
+		<boolean name="face_normals" value="true" />
+		<ref id="mat-itu_plasterboard" name="bsdf" />
+	</shape>
+	<shape type="ply" id="mesh-None_vegetation" name="mesh-None_vegetation">
+		<string name="filename" value="meshes/None_vegetation.ply" />
+		<boolean name="face_normals" value="true" />
+		<ref id="mat-itu_glass" name="bsdf" />
+	</shape>
+	<shape type="ply" id="mesh-None_forest_003" name="mesh-None_forest_003">
+		<string name="filename" value="meshes/None_forest_003.ply" />
+		<boolean name="face_normals" value="true" />
+		<ref id="mat-itu_wood" name="bsdf" />
+	</shape>
+	<shape type="ply" id="mesh-None_vegetation_002" name="mesh-None_vegetation_002">
+		<string name="filename" value="meshes/None_vegetation_002.ply" />
+		<boolean name="face_normals" value="true" />
+		<ref id="mat-itu_glass" name="bsdf" />
+	</shape>
+	<shape type="ply" id="mesh-None_vegetation_001" name="mesh-None_vegetation_001">
+		<string name="filename" value="meshes/None_vegetation_001.ply" />
+		<boolean name="face_normals" value="true" />
+		<ref id="mat-itu_glass" name="bsdf" />
+	</shape>
+	<shape type="ply" id="mesh-None_vegetation_003" name="mesh-None_vegetation_003">
+		<string name="filename" value="meshes/None_vegetation_003.ply" />
+		<boolean name="face_normals" value="true" />
+		<ref id="mat-itu_glass" name="bsdf" />
+	</shape>
+
+
+
+<shape type="ply" name="elm__3" id="elm__3">
+			<string name="filename" value="/home/js/js/sionna-rt/src/sionna/rt/scenes/etri/meshes/None_roads_motorway.ply" />
+			<ref id="mat-itu_concrete" name="bsdf" />
+		<transform name="to_world">
+			<matrix value="0.997384 0.072291 0.000000 0.000000 -0.072291 0.997384 0.000000 0.000000 0.000000 0.000000 1.000000 0.300000 0.000000 0.000000 0.000000 1.000000" />
+		</transform>
+	</shape>
+	<shape type="ply" name="elm__5" id="elm__5">
+			<string name="filename" value="/home/js/js/sionna-rt/src/sionna/rt/scenes/etri/meshes/None_roads_service.ply" />
+			<ref id="mat-itu_concrete" name="bsdf" />
+		<transform name="to_world">
+			<matrix value="0.997384 0.072291 0.000000 0.000000 -0.072291 0.997384 0.000000 0.000000 0.000000 0.000000 1.000000 0.300000 0.000000 0.000000 0.000000 1.000000" />
+		</transform>
+	</shape>
+	<shape type="ply" name="elm__7" id="elm__7">
+			<string name="filename" value="/home/js/js/sionna-rt/src/sionna/rt/scenes/etri/meshes/None_roads_motorway_002.ply" />
+			<ref id="mat-itu_concrete" name="bsdf" />
+		<transform name="to_world">
+			<matrix value="0.997384 0.072291 0.000000 0.000000 -0.072291 0.997384 0.000000 0.000000 0.000000 0.000000 1.000000 0.300000 0.000000 0.000000 0.000000 1.000000" />
+		</transform>
+	</shape>
+	</scene>

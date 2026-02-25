@@ -1,0 +1,51 @@
+<?xml version='1.0' encoding='utf-8'?>
+<scene version="2.1.0">
+
+
+
+
+
+
+	<integrator type="path" id="elm__0" name="elm__0">
+		<integer name="max_depth" value="12" />
+	</integrator>
+
+
+
+	<bsdf type="diffuse" id="mat-itu_concrete" name="mat-itu_concrete">
+		<rgb value="1.000000 0.500000 0.200000" name="reflectance" />
+	</bsdf>
+	<bsdf type="diffuse" id="mat-itu_metal" name="mat-itu_metal">
+		<rgb value="0.290000 0.250000 0.210000" name="reflectance" />
+	</bsdf>
+
+
+
+
+
+
+	<shape type="ply" id="mesh-buildings-itu_concrete" name="mesh-buildings-itu_concrete">
+		<string name="filename" value="meshes/buildings-itu_concrete.ply" />
+		<boolean name="face_normals" value="true" />
+		<ref id="mat-itu_concrete" name="bsdf" />
+	</shape>
+	<shape type="ply" id="mesh-buildings-itu_metal" name="mesh-buildings-itu_metal">
+		<string name="filename" value="meshes/buildings-itu_metal.ply" />
+		<boolean name="face_normals" value="true" />
+		<ref id="mat-itu_metal" name="bsdf" />
+	</shape>
+	<shape type="ply" name="elm__6" id="elm__6">
+			<string name="filename" value="/home/js/js/sionna-rt/src/sionna/rt/scenes/gangnam_260224/meshes/roads_residential.ply" />
+			<ref id="mat-itu_concrete" name="bsdf" />
+		<transform name="to_world">
+			<matrix value="1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.300000 0.000000 0.000000 0.000000 1.000000" />
+		</transform>
+	</shape>
+	<shape type="ply" name="elm__8" id="elm__8">
+			<string name="filename" value="/home/js/js/sionna-rt/src/sionna/rt/scenes/gangnam_260224/meshes/roads_primary.ply" />
+			<ref id="mat-itu_concrete" name="bsdf" />
+		<transform name="to_world">
+			<matrix value="1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.300000 0.000000 0.000000 0.000000 1.000000" />
+		</transform>
+	</shape>
+	</scene>
