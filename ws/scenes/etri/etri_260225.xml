@@ -11,10 +11,10 @@
 
 <!-- Materials -->
 
-	<bsdf type="diffuse" id="mat-itu_concrete" name="mat-itu_concrete">
+	<bsdf type="itu-radio-material" id="mat-itu_concrete" name="mat-itu_concrete">
 		<rgb value="0.086500 0.090842 0.088656" name="reflectance"/>
 	</bsdf>
-	<bsdf type="diffuse" id="mat-itu_wood" name="mat-itu_wood">
+	<bsdf type="itu-radio-material" id="mat-itu_wood" name="mat-itu_wood">
 		<rgb value="0.020000 0.208000 0.007000" name="reflectance"/>
 	</bsdf>
 

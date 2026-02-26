@@ -17,7 +17,7 @@ import re
 import xml.etree.ElementTree as ET
 
 # Backward-compatible defaults
-BASE_DIR = Path("/data/hw/sionna-rt/scene")
+BASE_DIR = Path("/data/hw/sionna/ws/scenes/etri")
 INPUT_XML = BASE_DIR / "etri_260225.xml"
 OUTPUT_XML = BASE_DIR / "etri_260225_fixed.xml"
 

@@ -7,97 +7,44 @@ import mitsuba as mi
 import tensorflow as tf
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
-
+import pandas as pd
+from IPython.display import display
+import plotly.graph_objects as go
 from sionna.rt import PlanarArray, Transmitter, Receiver, PathSolver
 
-def build_centerline_waypoints(road_positions,
-                               num_points: int = 40,
-                               start_index: int | None = None,
-                               end_index: int | None = None):
-    """도로 정점 클라우드에서 주행용 중심선 waypoints를 만든다."""
-    vertices = np.asarray(road_positions, dtype=np.float32)
-    if len(vertices) < 2:
-        return vertices.copy()
-
-    xy = vertices[:, [0, 1]]
-    xy_centered = xy - np.mean(xy, axis=0, keepdims=True)
-
-    # 한글 주석: 주행 방향 추정을 위해 XY 평면의 주성분 축을 사용
-    _, _, vt = np.linalg.svd(xy_centered, full_matrices=False)
-    forward_axis = vt[0]
-    proj = xy_centered @ forward_axis
-
-    lo, hi = float(np.min(proj)), float(np.max(proj))
-    if abs(hi - lo) < 1e-6:
-        waypoints = vertices.copy()
-    else:
-        bins = np.linspace(lo, hi, int(num_points) + 1, dtype=np.float32)
-        centers = []
-
-        # 한글 주석: 축 방향 구간별 평균점을 잡아 중심선 형태로 정렬
-        for i in range(len(bins) - 1):
-            mask = (proj >= bins[i]) & (proj < bins[i + 1])
-            if not np.any(mask):
-                continue
-            centers.append(np.mean(vertices[mask], axis=0))
-
-        waypoints = np.asarray(centers, dtype=np.float32)
-        if len(waypoints) < 2:
-            order = np.argsort(proj)
-            waypoints = vertices[order]
-
-    # 한글 주석: 시작/끝 기준점이 있으면 XY 기준으로 가장 가까운 구간만 잘라서 사용
-    start_ref = None
-    end_ref = None
-    if start_index is not None and len(vertices) > 0:
-        start_ref = vertices[int(np.clip(start_index, 0, len(vertices) - 1))]
-
-    if end_index is not None and len(vertices) > 0:
-        end_ref = vertices[int(np.clip(end_index, 0, len(vertices) - 1))]
-
-    if start_ref is not None or end_ref is not None:
-        wp_xy = waypoints[:, [0, 1]]
-
-        if start_ref is None:
-            i_start = 0
-        else:
-            i_start = int(np.argmin(np.linalg.norm(wp_xy - start_ref[[0, 1]], axis=1)))
-
-        if end_ref is None:
-            i_end = len(waypoints) - 1
-        else:
-            i_end = int(np.argmin(np.linalg.norm(wp_xy - end_ref[[0, 1]], axis=1)))
-
-        if i_start <= i_end:
-            waypoints = waypoints[i_start:i_end + 1]
-        else:
-            waypoints = waypoints[i_end:i_start + 1][::-1]
-
-    return waypoints
-
-def plot_vertices_xy_with_indices(road_positions,
-                                  step: int = 10,
-                                  figsize=(8, 7)):
-    """XY 평면에서 정점 인덱스를 간격 기반으로 함께 표시한다."""
+def plot_vertices_index(road_positions,
+                            width: int = 1000,
+                            height: int = 800,
+                            marker_size: int = 5):
+    """Plotly로 XY 평면 정점 인덱스를 간단히 확인한다."""
     vertices = np.asarray(road_positions, dtype=np.float32)
     if len(vertices) == 0:
         raise ValueError("road_positions가 비어 있습니다.")
 
-    fig, ax = plt.subplots(figsize=figsize)
+    x_vals = vertices[:, 0]
+    y_vals = vertices[:, 1]
+    indices = list(range(len(vertices)))
 
-    # 한글 주석: 전체 정점 분포를 점으로 그리고 일부 인덱스만 라벨링해 가독성 유지
-    ax.scatter(vertices[:, 0], vertices[:, 1], s=12, c="tab:blue", alpha=0.55)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=x_vals,
+        y=y_vals,
+        mode="markers",
+        marker=dict(size=marker_size, color="blue"),
+        text=indices,
+        hovertemplate="<b>Index: %{text}</b><br>X: %{x:.2f}<br>Y: %{y:.2f}<extra></extra>",
+    ))
 
-    step = max(1, int(step))
-    for idx in range(0, len(vertices), step):
-        ax.text(vertices[idx, 0], vertices[idx, 1], str(idx), fontsize=8, color="black")
-
-    ax.set_title("Road vertices with sampled indices (X-Y)")
-    ax.set_xlabel("X")
-    ax.set_ylabel("Y")
-    ax.grid(True)
-    plt.tight_layout()
-    plt.show()
+    # 한글 주석: hover로 인덱스를 바로 확인할 수 있게 closest 모드 사용
+    fig.update_layout(
+        title="도로 점 확인용 지도 (X-Y 평면)",
+        xaxis_title="X Axis (East/West)",
+        yaxis_title="Y Axis (North/South)",
+        width=width,
+        height=height,
+        hovermode="closest",
+    )
+    fig.show()
 
 def plot_vertices_xy(road_positions,
                      waypoints=None,
@@ -120,11 +67,15 @@ def plot_vertices_xy(road_positions,
 
     if start_point is not None:
         sp = np.asarray(start_point, dtype=np.float32)
-        ax.scatter([sp[0]], [sp[1]], s=90, c="tab:green", marker="*", label="start")
+        if sp.ndim == 0: # 정점 인덱스가 하나만 들어온 경우
+            sp = vertices[int(sp)]
+        ax.scatter([sp[0]], [sp[1]], s=150, c="tab:green", marker="*", label="start", zorder=3)
 
     if end_point is not None:
         ep = np.asarray(end_point, dtype=np.float32)
-        ax.scatter([ep[0]], [ep[1]], s=90, c="tab:red", marker="*", label="end")
+        if ep.ndim == 0: # 정점 인덱스가 하나만 들어온 경우
+            ep = vertices[int(ep)]
+        ax.scatter([ep[0]], [ep[1]], s=150, c="tab:red", marker="*", label="end", zorder=3)
 
     ax.set_title("Road vertices / selected path (X-Y)")
     ax.set_xlabel("X")
@@ -156,7 +107,6 @@ def print_scene_materials(scene) -> None:
         itu_type = getattr(mat, "itu_type", "Unknown")
         thickness = getattr(mat, "thickness", "Unknown")
         print(f" - 이름: {mat_name:<15} (Type: {itu_type}, Thickness: {thickness})")
-
 
 def get_road_positions_from_object(scene,
                                    road_object_id: str,
@@ -214,32 +164,20 @@ def get_road_positions_from_object(scene,
         return road_positions
 
 def prepare_vehicle_path(road_positions,
-                         path_indices=None,
-                         y_offset: float = 1.5,
-                         speed_ms: float = 60.0 / 3.6,
-                         delta_t: float = 0.5,
-                         use_centerline: bool = False,
-                         centerline_points: int = 40,
-                         start_index: int | None = None,
-                         end_index: int | None = None):
-    """도로 정점에서 이동 경로와 시간축 정보를 만든다."""
+                         path_indices,
+                         z_offset: float = 1.5,
+                         speed_ms: float = 90.0 / 3.6,
+                         delta_t: float = 0.5):
+    """수동 인덱스(path_indices) 기반으로 이동 경로와 시간축을 만든다."""
     if road_positions is None or len(road_positions) == 0:
         raise ValueError("❌ 'road_positions' 데이터가 없습니다.")
+    if path_indices is None or len(path_indices) < 2:
+        raise ValueError("❌ path_indices는 최소 2개 이상 필요합니다.")
 
-    if use_centerline or path_indices is None:
-        # 한글 주석: 중심선 생성 시 start/end 인덱스를 직접 반영한다
-        waypoints = build_centerline_waypoints(
-            road_positions,
-            num_points=centerline_points,
-            start_index=start_index,
-            end_index=end_index,
-        )
-    else:
-        waypoints = np.asarray(road_positions[path_indices], dtype=np.float32).copy()
+    waypoints = np.asarray(road_positions[path_indices], dtype=np.float32).copy()
+    waypoints[:, 2] += float(z_offset)
 
-    waypoints[:, 1] += float(y_offset)
-
-    # 한글 주석: 구간 거리/누적 거리/시간축을 한 번에 계산
+    # 한글 주석: 구간 거리/누적 거리/시간축 계산
     diffs = waypoints[1:] - waypoints[:-1]
     segment_dists = np.linalg.norm(diffs, axis=1)
     cumulative_dists = np.concatenate(([0.0], np.cumsum(segment_dists)))
@@ -249,7 +187,6 @@ def prepare_vehicle_path(road_positions,
 
     return {
         "waypoints": waypoints,
-        "use_centerline": bool(use_centerline or path_indices is None),
         "speed_ms": float(speed_ms),
         "delta_t": float(delta_t),
         "segment_dists": segment_dists,
@@ -390,3 +327,202 @@ def create_vehicle_simulation_widgets(scene,
 
     widgets.interactive_output(update_simulation, {"frame_idx": slider})
     return slider, output_widget
+
+def create_taps_pdp_widgets(scene, rx, solver, path_data, tx_names, 
+                            bandwidth, l_min, l_max, sampling_frequency, num_time_steps):
+    """
+    Taps 기반의 PDP(Power Delay Profile)를 시각화하는 인터랙티브 위젯을 생성합니다.
+    (위에는 그림, 아래에는 표가 출력됩니다.)
+    """
+    time_steps = path_data["time_steps"]
+    
+    # 캐시: (frame_idx, tx_idx, rel_delay) -> (t, pos, df)
+    _taps_cache = {}
+
+    out = widgets.Output()
+
+    tx_dropdown = widgets.Dropdown(
+        options=[(name, i) for i, name in enumerate(tx_names)],
+        value=0,
+        description="TX:",
+        layout=widgets.Layout(width="220px")
+    )
+
+    frame_slider = widgets.IntSlider(
+        value=0,
+        min=0,
+        max=len(time_steps) - 1,
+        step=1,
+        description="Time:",
+        continuous_update=False,
+        layout=widgets.Layout(width="600px")
+    )
+
+    rel_delay_chk = widgets.Checkbox(
+        value=False,
+        description="Relative delay (min τ = 0)",
+        indent=False
+    )
+
+    def _compute_taps_for_frame(frame_idx: int, tx_idx: int, rel_delay: bool):
+        key = (frame_idx, tx_idx, rel_delay)
+        if key in _taps_cache:
+            return _taps_cache[key]
+
+        t = float(time_steps[frame_idx])
+        pos, vel = get_state_at_time(path_data, t)
+
+        # Rx 위치/방향 갱신
+        rx.position = pos
+        rx.velocity = vel
+        for name in tx_names:
+            scene.transmitters[name].look_at(pos)
+
+        # 경로 계산
+        paths = solver(
+            scene,
+            max_depth=3,
+            samples_per_src=100000,
+            diffuse_reflection=True,
+            diffraction=True,
+            synthetic_array=True
+        )
+
+        # taps 계산 (TF 텐서)
+        h = paths.taps(
+            bandwidth=bandwidth,
+            l_min=l_min,
+            l_max=l_max,
+            sampling_frequency=sampling_frequency,
+            num_time_steps=num_time_steps,
+            normalize=False,
+            normalize_delays=False,
+            out_type="tf"
+        )
+
+        # Rx=0, 선택 Tx, time=0에서 안테나 축 합산해 PDP 생성
+        h_sel = h[0, :, tx_idx, :, 0, :]                         
+        pdp = tf.reduce_sum(tf.abs(h_sel)**2, axis=[0, 1])       
+        pdp_np = pdp.numpy()
+
+        tap_idx = np.arange(l_min, l_max + 1, dtype=int)
+        tau_ns = (tap_idx / bandwidth) * 1e9                     
+
+        valid = np.isfinite(pdp_np) & (pdp_np > 0)
+        if np.sum(valid) == 0:
+            df = pd.DataFrame(columns=["tap_idx", "tau_ns", "pdp_db"])
+            _taps_cache[key] = (t, pos, df)
+            return _taps_cache[key]
+
+        tap_v = tap_idx[valid]
+        tau_v = tau_ns[valid]
+        pdp_v = pdp_np[valid]
+
+        if rel_delay:
+            tau_v = tau_v - np.min(tau_v)
+
+        order = np.argsort(tau_v)
+        tap_s = tap_v[order]
+        tau_s = tau_v[order]
+        pdp_db = 10 * np.log10(pdp_v[order] + 1e-30)
+
+        df = pd.DataFrame({
+            "tap_idx": tap_s.astype(int),
+            "tau_ns": tau_s,
+            "pdp_db": pdp_db
+        })
+
+        _taps_cache[key] = (t, pos, df)
+        return _taps_cache[key]
+
+    def _update_plot(_=None):
+        frame_idx = frame_slider.value
+        tx_idx = tx_dropdown.value
+        rel_delay = rel_delay_chk.value
+
+        with out:
+            out.clear_output(wait=True)
+
+            t, pos, df = _compute_taps_for_frame(frame_idx, tx_idx, rel_delay)
+
+            if df.empty:
+                print(f"t={t:.2f}s | frame={frame_idx} | {tx_names[tx_idx]} : 유효 탭이 없습니다.")
+                print(f"pos={pos}")
+                return
+
+            # 그림부터 출력
+            plt.figure(figsize=(8, 3.6))
+            plt.stem(df["tau_ns"].values, df["pdp_db"].values, basefmt=" ")
+            for x, y, tap in zip(df["tau_ns"].values, df["pdp_db"].values, df["tap_idx"].values):
+                plt.text(x, y, str(tap), fontsize=9, ha="center", va="bottom")
+
+            plt.xlabel("Delay τ (ns)")
+            plt.ylabel("Power (dB)")
+            plt.title(f"{tx_names[tx_idx]} taps-PDP at t={t:.2f}s | frame={frame_idx}\npos={pos}")
+            plt.grid(True)
+            plt.show()
+            
+            # 표 출력
+            print("\n[ Taps Data Table ]")
+            display(df)
+
+    # 위젯 이벤트 연결
+    frame_slider.observe(_update_plot, names="value")
+    tx_dropdown.observe(_update_plot, names="value")
+    rel_delay_chk.observe(_update_plot, names="value")
+
+    _update_plot()
+    return widgets.VBox([widgets.HBox([frame_slider, tx_dropdown]), rel_delay_chk, out])
+
+def export_simulation_video(scene, rx, solver, path_data, tx_names, camera,
+                            filename="simulation_output.mp4",
+                            fps=10, 
+                            resolution=(800, 600),
+                            max_depth=3,
+                            samples_per_src=100000):
+    """
+    모든 프레임에 대해 시뮬레이션을 돌리고 주어진 고정 카메라(camera)의 화면을 mp4 애니메이션으로 저장합니다.
+    (시간이 꽤 소요될 수 있습니다.)
+    """
+    import imageio
+    
+    time_steps = path_data["time_steps"]
+    total_frames = len(time_steps)
+    print(f"🎥 애니메이션 렌더링 시작... (총 {total_frames} 프레임)")
+    print(f"저장 경로: {filename}")
+
+    writer = imageio.get_writer(filename, fps=fps)
+
+    for frame_idx, t in enumerate(time_steps):
+        t_float = float(t)
+        current_pos, current_vel = get_state_at_time(path_data, t_float)
+
+        rx.position = current_pos
+        rx.velocity = current_vel
+        for name in tx_names:
+            scene.transmitters[name].look_at(current_pos)
+
+        paths = solver(
+            scene,
+            max_depth=max_depth,
+            samples_per_src=samples_per_src,
+            diffuse_reflection=True,
+            diffraction=True,
+            synthetic_array=True
+        )
+
+        try:
+            # Sionna 버전에 맞춰 render() 함수 사용 후 numpy 변환
+            img_bitmap = scene.render(camera=camera, paths=paths, resolution=resolution, show_devices=True, return_bitmap=True)
+            img = np.array(img_bitmap)
+            
+            img_uint8 = np.clip(img * 255.0, 0, 255).astype(np.uint8)
+            writer.append_data(img_uint8)
+            print(f"  -> 프레임 렌더링 완료: {frame_idx + 1}/{total_frames} ({(frame_idx+1)/total_frames*100:.1f}%)")
+        except Exception as e:
+            print(f"프레임 {frame_idx} 렌더링 중 에러 발생: {e}")
+            break
+
+    writer.close()
+    scene.remove("recorder_cam")
+    print(f"🎬 렌더링 완료! '{filename}' 파일이 생성되었습니다.")
