@@ -328,15 +328,352 @@ def create_vehicle_simulation_widgets(scene,
     widgets.interactive_output(update_simulation, {"frame_idx": slider})
     return slider, output_widget
 
-def create_taps_pdp_widgets(scene, rx, solver, path_data, tx_names, 
-                            bandwidth, l_min, l_max, sampling_frequency, num_time_steps):
+
+def plot_cir_for_frame(scene,
+                       rx,
+                       solver,
+                       path_data,
+                       tx_names,
+                       frame_idx: int,
+                       max_depth: int = 3,
+                       samples_per_src: int = 100000,
+                       diffuse_reflection: bool = True,
+                       diffraction: bool = True,
+                       synthetic_array: bool = True,
+                       show_plot: bool = True,
+                       figsize=(8, 4)):
+    """프레임 인덱스(frame_idx) 기준으로 CIR을 계산하고(선택적으로) 시각화한다."""
+    time_steps = path_data["time_steps"]
+    if frame_idx < 0 or frame_idx >= len(time_steps):
+        raise IndexError(f"frame_idx 범위 오류: {frame_idx} (0 ~ {len(time_steps)-1})")
+
+    t = float(time_steps[frame_idx])
+    current_pos, current_vel = get_state_at_time(path_data, t)
+
+    # 한글 주석: 위치/속도를 매 프레임 업데이트해 도플러를 반영
+    rx.position = current_pos
+    rx.velocity = current_vel
+    for name in tx_names:
+        scene.transmitters[name].look_at(current_pos)
+
+    # 한글 주석: 현재 프레임 기준 경로를 계산
+    paths = solver(
+        scene,
+        max_depth=max_depth,
+        samples_per_src=samples_per_src,
+        diffuse_reflection=diffuse_reflection,
+        diffraction=diffraction,
+        synthetic_array=synthetic_array
+    )
+
+    # 한글 주석: CIR 텐서를 가져오고 지연축/진폭축을 플롯용으로 변환
+    a, tau = paths.cir(out_type="tf", normalize_delays=False)
+
+    a_np = a.numpy() if hasattr(a, "numpy") else np.asarray(a)
+    tau_np = tau.numpy() if hasattr(tau, "numpy") else np.asarray(tau)
+
+    if a_np.size == 0 or tau_np.size == 0:
+        raise ValueError("CIR 결과가 비어 있습니다. (a 또는 tau가 empty)")
+
+    # 한글 주석: 버전에 따라 tau 차원이 다를 수 있어 분기 처리
+    if tau_np.ndim == 3:
+        tau_ns = tau_np[0, 0, :] / 1e-9
+    elif tau_np.ndim == 5:
+        tau_ns = tau_np[0, 0, 0, 0, :] / 1e-9
+    else:
+        raise ValueError(f"지원하지 않는 tau 차원: {tau_np.shape}")
+
+    # 한글 주석: 기존 코드 인덱싱과 동일하게 기본 링크(Rx0/RxAnt0/Tx0/TxAnt0) 사용
+    if a_np.ndim == 6:
+        a_abs = np.abs(a_np)[0, 0, 0, 0, :, 0]
+    elif a_np.ndim == 5:
+        a_abs = np.abs(a_np)[0, 0, 0, 0, :]
+    else:
+        raise ValueError(f"지원하지 않는 a 차원: {a_np.shape}")
+
+    if show_plot:
+        plt.figure(figsize=figsize)
+        plt.title(f"Channel Impulse Response (frame={frame_idx})")
+        plt.stem(tau_ns, a_abs, basefmt=" ")
+        plt.xlim(left=0)
+        plt.xlabel("Delay τ (ns)")
+        plt.ylabel("|a|")
+        plt.grid(True, linestyle="--", alpha=0.6)
+        plt.show()
+
+    print("frame_idx =", frame_idx)
+    print("t =", t)
+    print("a shape:", a_np.shape)
+    print("tau shape:", tau_np.shape)
+
+    return {
+        "frame_idx": frame_idx,
+        "time_s": t,
+        "pos": current_pos,
+        "vel": current_vel,
+        "paths": paths,
+        "a": a,
+        "tau": tau,
+        "tau_ns": tau_ns,
+        "a_abs": a_abs,
+    }
+
+def create_cir_slider_widget(scene,
+                             rx,
+                             solver,
+                             path_data,
+                             tx_names,
+                             max_depth: int = 3,
+                             samples_per_src: int = 100000,
+                             diffuse_reflection: bool = True,
+                             diffraction: bool = True,
+                             synthetic_array: bool = True,
+                             figsize=(8, 4),
+                             continuous_update: bool = False):
+    """프레임 인덱스 슬라이더로 CIR 변화를 확인하는 위젯을 생성한다."""
+    time_steps = path_data["time_steps"]
+    out = widgets.Output()
+
+    frame_slider = widgets.IntSlider(
+        value=0,
+        min=0,
+        max=len(time_steps) - 1,
+        step=1,
+        description="Frame:",
+        continuous_update=continuous_update,
+        layout=widgets.Layout(width="600px"),
+    )
+
+    def _update(frame_idx):
+        with out:
+            out.clear_output(wait=True)
+
+            # 한글 주석: 기존 단일 프레임 함수 호출로 계산/플롯 로직을 재사용
+            result = plot_cir_for_frame(
+                scene=scene,
+                rx=rx,
+                solver=solver,
+                path_data=path_data,
+                tx_names=tx_names,
+                frame_idx=int(frame_idx),
+                max_depth=max_depth,
+                samples_per_src=samples_per_src,
+                diffuse_reflection=diffuse_reflection,
+                diffraction=diffraction,
+                synthetic_array=synthetic_array,
+                show_plot=True,
+                figsize=figsize,
+            )
+
+            # 한글 주석: 슬라이더 상태에서 핵심 정보만 추가 출력
+            print(
+                f"⏱ Time: {result['time_s']:.2f}s | frame={result['frame_idx']} "
+                f"| 📍 Pos: {np.round(result['pos'], 3)} | 🚗 Vel: {np.round(result['vel'], 3)}"
+            )
+
+    widgets.interactive_output(_update, {"frame_idx": frame_slider})
+
+    # 한글 주석: 초기 프레임을 먼저  번 렌더링
+    _update(0)
+
+    return widgets.VBox([frame_slider, out])
+
+
+def plot_cfr_for_frame(scene,
+                       rx,
+                       solver,
+                       path_data,
+                       tx_names,
+                       frame_idx: int,
+                       frequencies,
+                       normalize: bool = True,
+                       normalize_delays: bool = True,
+                       max_depth: int = 3,
+                       samples_per_src: int = 100000,
+                       diffuse_reflection: bool = True,
+                       diffraction: bool = True,
+                       synthetic_array: bool = True,
+                       show_plot: bool = True,
+                       figsize=(8, 3.2),
+                       rx_idx: int = 0,
+                       rx_ant_idx: int = 0,
+                       tx_idx: int = 0,
+                       tx_ant_idx: int = 0,
+                       time_idx: int = 0):
+    """프레임 인덱스(frame_idx) 기준으로 CFR을 계산하고(선택적으로) 시각화한다."""
+    time_steps = path_data["time_steps"]
+    if frame_idx < 0 or frame_idx >= len(time_steps):
+        raise IndexError(f"frame_idx 범위 오류: {frame_idx} (0 ~ {len(time_steps)-1})")
+
+    freqs = np.asarray(frequencies, dtype=np.float32).reshape(-1)
+    if freqs.size == 0:
+        raise ValueError("frequencies가 비어 있습니다.")
+
+    t = float(time_steps[frame_idx])
+    current_pos, current_vel = get_state_at_time(path_data, t)
+
+    # 한글 주석: 프레임별 위치/속도를 갱신해 도플러를 반영한다.
+    rx.position = current_pos
+    rx.velocity = current_vel
+    for name in tx_names:
+        scene.transmitters[name].look_at(current_pos)
+
+    # 한글 주석: 현재 프레임의 경로를 다시 계산한다.
+    paths = solver(
+        scene,
+        max_depth=max_depth,
+        samples_per_src=samples_per_src,
+        diffuse_reflection=diffuse_reflection,
+        diffraction=diffraction,
+        synthetic_array=synthetic_array
+    )
+
+    h_freq = paths.cfr(
+        frequencies=freqs,
+        normalize=normalize,
+        normalize_delays=normalize_delays,
+        out_type="numpy"
+    )
+
+    h_np = np.asarray(h_freq)
+    if h_np.size == 0:
+        raise ValueError("CFR 결과가 비어 있습니다.")
+
+    # 한글 주석: 기본 링크 하나를 선택해 주파수 축 벡터를 뽑는다.
+    h_sel = h_np[rx_idx, rx_ant_idx, tx_idx, tx_ant_idx, time_idx, :]
+    h_abs = np.abs(h_sel)
+
+    if show_plot:
+        plt.figure(figsize=figsize)
+
+        if freqs.size == 1:
+            # 한글 주석: 단일 주파수는 막대 하나로 표시한다.
+            plt.stem([0.0], [h_abs[0]], basefmt=" ")
+            plt.xlabel("Frequency offset from center [MHz]")
+            plt.ylabel("|H(f)|")
+            plt.title(f"CFR (single frequency) | frame={frame_idx}")
+            plt.grid(True)
+        else:
+            f0 = float(np.mean(freqs))
+            f_off_mhz = (freqs - f0) / 1e6
+            plt.plot(f_off_mhz, h_abs)
+            plt.xlabel(f"Frequency offset from {f0/1e9:.3f}GHz [MHz]")
+            plt.ylabel("|H(f)|")
+            plt.title(f"CFR (frequency sweep) | frame={frame_idx}")
+            plt.grid(True)
+
+        plt.tight_layout()
+        plt.show()
+
+    print("frame_idx =", frame_idx)
+    print("t =", t)
+    print("h_freq shape:", h_np.shape)
+    print("selected |H(f)| first:", float(h_abs[0]))
+
+    return {
+        "frame_idx": frame_idx,
+        "time_s": t,
+        "pos": current_pos,
+        "vel": current_vel,
+        "paths": paths,
+        "frequencies": freqs,
+        "h_freq": h_freq,
+        "h_abs": h_abs,
+    }
+
+
+def create_cfr_slider_widget(scene,
+                             rx,
+                             solver,
+                             path_data,
+                             tx_names,
+                             frequencies,
+                             normalize: bool = True,
+                             normalize_delays: bool = True,
+                             max_depth: int = 3,
+                             samples_per_src: int = 100000,
+                             diffuse_reflection: bool = True,
+                             diffraction: bool = True,
+                             synthetic_array: bool = True,
+                             figsize=(8, 3.2),
+                             continuous_update: bool = False,
+                             rx_idx: int = 0,
+                             rx_ant_idx: int = 0,
+                             tx_idx: int = 0,
+                             tx_ant_idx: int = 0,
+                             time_idx: int = 0):
+    """프레임 슬라이더로 CFR 변화를 확인하는 위젯을 생성한다."""
+    time_steps = path_data["time_steps"]
+    out = widgets.Output()
+
+    frame_slider = widgets.IntSlider(
+        value=0,
+        min=0,
+        max=len(time_steps) - 1,
+        step=1,
+        description="Frame:",
+        continuous_update=continuous_update,
+        layout=widgets.Layout(width="600px")
+    )
+
+    def _update(frame_idx):
+        with out:
+            out.clear_output(wait=True)
+
+            # 한글 주석: 단일 프레임 CFR 함수를 재사용해 중복 코드를 줄인다.
+            result = plot_cfr_for_frame(
+                scene=scene,
+                rx=rx,
+                solver=solver,
+                path_data=path_data,
+                tx_names=tx_names,
+                frame_idx=int(frame_idx),
+                frequencies=frequencies,
+                normalize=normalize,
+                normalize_delays=normalize_delays,
+                max_depth=max_depth,
+                samples_per_src=samples_per_src,
+                diffuse_reflection=diffuse_reflection,
+                diffraction=diffraction,
+                synthetic_array=synthetic_array,
+                show_plot=True,
+                figsize=figsize,
+                rx_idx=rx_idx,
+                rx_ant_idx=rx_ant_idx,
+                tx_idx=tx_idx,
+                tx_ant_idx=tx_ant_idx,
+                time_idx=time_idx
+            )
+
+            print(
+                f"⏱ Time: {result['time_s']:.2f}s | frame={result['frame_idx']} "
+                f"| 📍 Pos: {np.round(result['pos'], 3)} | 🚗 Vel: {np.round(result['vel'], 3)}"
+            )
+
+    widgets.interactive_output(_update, {"frame_idx": frame_slider})
+
+    # 한글 주석: 위젯 생성 직후 첫 프레임을 한 번 렌더링한다.
+    _update(0)
+
+    return widgets.VBox([frame_slider, out])
+
+
+def create_taps_pdp_widgets(scene, rx, solver, path_data, tx_names,
+                            bandwidth, l_min, l_max, sampling_frequency, num_time_steps,
+                            bandwidth_min: float = 1e6,
+                            bandwidth_max: float = 2e9,
+                            sampling_frequency_min: float = 1e3,
+                            sampling_frequency_max: float = 1e7,
+                            num_time_steps_min: int = 1,
+                            num_time_steps_max: int = 200,
+                            l_step_min: int = 0,
+                            l_step_max: int = 500):
     """
-    Taps 기반의 PDP(Power Delay Profile)를 시각화하는 인터랙티브 위젯을 생성합니다.
-    (위에는 그림, 아래에는 표가 출력됩니다.)
+    Taps 기반 PDP를 프레임/파라미터 슬라이더로 시각화하는 인터랙티브 위젯을 생성합니다.
     """
     time_steps = path_data["time_steps"]
-    
-    # 캐시: (frame_idx, tx_idx, rel_delay) -> (t, pos, df)
+
+    # 캐시: (frame_idx, tx_idx, rel_delay, bw, lmin, lmax, fs, nts) -> (t, pos, df)
     _taps_cache = {}
 
     out = widgets.Output()
@@ -364,15 +701,77 @@ def create_taps_pdp_widgets(scene, rx, solver, path_data, tx_names,
         indent=False
     )
 
-    def _compute_taps_for_frame(frame_idx: int, tx_idx: int, rel_delay: bool):
-        key = (frame_idx, tx_idx, rel_delay)
+    # 한글 주석: taps 파라미터를 슬라이더로 조절할 수 있게 구성
+    bandwidth_slider = widgets.FloatLogSlider(
+        value=float(bandwidth),
+        base=10,
+        min=np.log10(max(bandwidth_min, 1.0)),
+        max=np.log10(max(bandwidth_max, bandwidth_min * 10.0)),
+        step=0.01,
+        description="BW [Hz]:",
+        continuous_update=False,
+        readout_format=".3e",
+        layout=widgets.Layout(width="600px")
+    )
+
+    l_min_slider = widgets.IntSlider(
+        value=int(l_min),
+        min=int(l_step_min),
+        max=int(l_step_max),
+        step=1,
+        description="l_min:",
+        continuous_update=False,
+        layout=widgets.Layout(width="600px")
+    )
+
+    l_max_slider = widgets.IntSlider(
+        value=int(l_max),
+        min=int(l_step_min),
+        max=int(l_step_max),
+        step=1,
+        description="l_max:",
+        continuous_update=False,
+        layout=widgets.Layout(width="600px")
+    )
+
+    sampling_frequency_slider = widgets.FloatLogSlider(
+        value=float(sampling_frequency),
+        base=10,
+        min=np.log10(max(sampling_frequency_min, 1.0)),
+        max=np.log10(max(sampling_frequency_max, sampling_frequency_min * 10.0)),
+        step=0.01,
+        description="Fs [Hz]:",
+        continuous_update=False,
+        readout_format=".3e",
+        layout=widgets.Layout(width="600px")
+    )
+
+    num_time_steps_slider = widgets.IntSlider(
+        value=int(num_time_steps),
+        min=int(num_time_steps_min),
+        max=int(num_time_steps_max),
+        step=1,
+        description="N_time:",
+        continuous_update=False,
+        layout=widgets.Layout(width="600px")
+    )
+
+    def _compute_taps_for_frame(frame_idx: int,
+                                tx_idx: int,
+                                rel_delay: bool,
+                                bw: float,
+                                lmin: int,
+                                lmax: int,
+                                fs: float,
+                                nts: int):
+        key = (frame_idx, tx_idx, rel_delay, float(bw), int(lmin), int(lmax), float(fs), int(nts))
         if key in _taps_cache:
             return _taps_cache[key]
 
         t = float(time_steps[frame_idx])
         pos, vel = get_state_at_time(path_data, t)
 
-        # Rx 위치/방향 갱신
+        # 한글 주석: Rx 위치/속도를 프레임별로 업데이트
         rx.position = pos
         rx.velocity = vel
         for name in tx_names:
@@ -390,23 +789,23 @@ def create_taps_pdp_widgets(scene, rx, solver, path_data, tx_names,
 
         # taps 계산 (TF 텐서)
         h = paths.taps(
-            bandwidth=bandwidth,
-            l_min=l_min,
-            l_max=l_max,
-            sampling_frequency=sampling_frequency,
-            num_time_steps=num_time_steps,
+            bandwidth=float(bw),
+            l_min=int(lmin),
+            l_max=int(lmax),
+            sampling_frequency=float(fs),
+            num_time_steps=int(nts),
             normalize=False,
             normalize_delays=False,
             out_type="tf"
         )
 
         # Rx=0, 선택 Tx, time=0에서 안테나 축 합산해 PDP 생성
-        h_sel = h[0, :, tx_idx, :, 0, :]                         
-        pdp = tf.reduce_sum(tf.abs(h_sel)**2, axis=[0, 1])       
+        h_sel = h[0, :, tx_idx, :, 0, :]
+        pdp = tf.reduce_sum(tf.abs(h_sel) ** 2, axis=[0, 1])
         pdp_np = pdp.numpy()
 
-        tap_idx = np.arange(l_min, l_max + 1, dtype=int)
-        tau_ns = (tap_idx / bandwidth) * 1e9                     
+        tap_idx = np.arange(int(lmin), int(lmax) + 1, dtype=int)
+        tau_ns = (tap_idx / float(bw)) * 1e9
 
         valid = np.isfinite(pdp_np) & (pdp_np > 0)
         if np.sum(valid) == 0:
@@ -440,17 +839,36 @@ def create_taps_pdp_widgets(scene, rx, solver, path_data, tx_names,
         tx_idx = tx_dropdown.value
         rel_delay = rel_delay_chk.value
 
+        bw = float(bandwidth_slider.value)
+        lmin = int(l_min_slider.value)
+        lmax = int(l_max_slider.value)
+        fs = float(sampling_frequency_slider.value)
+        nts = int(num_time_steps_slider.value)
+
+        # 한글 주석: 슬라이더 조작 중 l_min/l_max 순서가 바뀌면 자동 보정
+        if lmin > lmax:
+            lmin, lmax = lmax, lmin
+
         with out:
             out.clear_output(wait=True)
 
-            t, pos, df = _compute_taps_for_frame(frame_idx, tx_idx, rel_delay)
+            t, pos, df = _compute_taps_for_frame(
+                frame_idx=frame_idx,
+                tx_idx=tx_idx,
+                rel_delay=rel_delay,
+                bw=bw,
+                lmin=lmin,
+                lmax=lmax,
+                fs=fs,
+                nts=nts
+            )
 
             if df.empty:
                 print(f"t={t:.2f}s | frame={frame_idx} | {tx_names[tx_idx]} : 유효 탭이 없습니다.")
                 print(f"pos={pos}")
+                print(f"BW={bw:.3e}, l_min={lmin}, l_max={lmax}, Fs={fs:.3e}, N_time={nts}")
                 return
 
-            # 그림부터 출력
             plt.figure(figsize=(8, 3.6))
             plt.stem(df["tau_ns"].values, df["pdp_db"].values, basefmt=" ")
             for x, y, tap in zip(df["tau_ns"].values, df["pdp_db"].values, df["tap_idx"].values):
@@ -458,11 +876,13 @@ def create_taps_pdp_widgets(scene, rx, solver, path_data, tx_names,
 
             plt.xlabel("Delay τ (ns)")
             plt.ylabel("Power (dB)")
-            plt.title(f"{tx_names[tx_idx]} taps-PDP at t={t:.2f}s | frame={frame_idx}\npos={pos}")
+            plt.title(
+                f"{tx_names[tx_idx]} taps-PDP at t={t:.2f}s | frame={frame_idx}\n"
+                f"BW={bw:.3e}, l_min={lmin}, l_max={lmax}, Fs={fs:.3e}, N_time={nts}\npos={pos}"
+            )
             plt.grid(True)
             plt.show()
-            
-            # 표 출력
+
             print("\n[ Taps Data Table ]")
             display(df)
 
@@ -470,9 +890,23 @@ def create_taps_pdp_widgets(scene, rx, solver, path_data, tx_names,
     frame_slider.observe(_update_plot, names="value")
     tx_dropdown.observe(_update_plot, names="value")
     rel_delay_chk.observe(_update_plot, names="value")
+    bandwidth_slider.observe(_update_plot, names="value")
+    l_min_slider.observe(_update_plot, names="value")
+    l_max_slider.observe(_update_plot, names="value")
+    sampling_frequency_slider.observe(_update_plot, names="value")
+    num_time_steps_slider.observe(_update_plot, names="value")
 
     _update_plot()
-    return widgets.VBox([widgets.HBox([frame_slider, tx_dropdown]), rel_delay_chk, out])
+    return widgets.VBox([
+        widgets.HBox([frame_slider, tx_dropdown]),
+        rel_delay_chk,
+        bandwidth_slider,
+        widgets.HBox([l_min_slider, l_max_slider]),
+        sampling_frequency_slider,
+        num_time_steps_slider,
+        out
+    ])
+
 
 def export_simulation_video(scene, rx, solver, path_data, tx_names, camera,
                             filename="simulation_output.mp4",

@@ -1,0 +1,103 @@
+<?xml version='1.0' encoding='utf-8'?>
+<scene version="2.1.0">
+
+
+
+
+
+
+	<integrator type="path" id="elm__0" name="elm__0">
+		<integer name="max_depth" value="12" />
+	</integrator>
+
+
+
+	<bsdf type="itu-radio-material" id="mat-itu_concrete" name="mat-itu_concrete">
+		<rgb value="0.147314 0.134475 0.119023" name="reflectance" />
+	</bsdf>
+	<bsdf type="itu-radio-material" id="mat-itu_wood" name="mat-itu_wood">
+		<rgb value="0.020000 0.208000 0.007000" name="reflectance" />
+	</bsdf>
+
+
+
+
+
+
+	<shape type="ply" id="elm__6" name="elm__6">
+		<string name="filename" value="meshes/map_2_osm_buildings-itu_concrete.ply" />
+		<boolean name="face_normals" value="true" />
+		<ref id="mat-itu_concrete" name="bsdf" />
+	</shape>
+	<shape type="ply" id="elm__7" name="elm__7">
+		<string name="filename" value="meshes/map_2_osm_buildings-itu_concrete-001.ply" />
+		<boolean name="face_normals" value="true" />
+		<ref id="mat-itu_concrete" name="bsdf" />
+	</shape>
+	<shape type="ply" id="elm__8" name="elm__8">
+		<string name="filename" value="meshes/map_2_osm_buildings-itu_concrete-002.ply" />
+		<boolean name="face_normals" value="true" />
+		<ref id="mat-itu_concrete" name="bsdf" />
+	</shape>
+	<shape type="ply" id="elm__9" name="elm__9">
+		<string name="filename" value="meshes/map_2_osm_buildings-itu_concrete-003.ply" />
+		<boolean name="face_normals" value="true" />
+		<ref id="mat-itu_concrete" name="bsdf" />
+	</shape>
+	<shape type="ply" id="elm__10" name="elm__10">
+		<string name="filename" value="meshes/map_2_osm_buildings-itu_concrete-004.ply" />
+		<boolean name="face_normals" value="true" />
+		<ref id="mat-itu_concrete" name="bsdf" />
+	</shape>
+	<shape type="ply" id="elm__11" name="elm__11">
+		<string name="filename" value="meshes/map_2_osm_buildings-itu_concrete-005.ply" />
+		<boolean name="face_normals" value="true" />
+		<ref id="mat-itu_concrete" name="bsdf" />
+	</shape>
+	<shape type="ply" id="elm__12" name="elm__12">
+		<string name="filename" value="meshes/map_2_osm_buildings-itu_concrete-006.ply" />
+		<boolean name="face_normals" value="true" />
+		<ref id="mat-itu_concrete" name="bsdf" />
+	</shape>
+	<shape type="ply" id="elm__13" name="elm__13">
+		<string name="filename" value="meshes/map_2_osm_buildings-itu_concrete-007.ply" />
+		<boolean name="face_normals" value="true" />
+		<ref id="mat-itu_concrete" name="bsdf" />
+	</shape>
+	<shape type="ply" id="forest1" name="forest1">
+		<string name="filename" value="meshes/map_2_osm_forest-itu_wood.ply" />
+		<boolean name="face_normals" value="true" />
+		<ref id="mat-itu_wood" name="bsdf" />
+	</shape>
+	<shape type="ply" id="forest2" name="forest2">
+		<string name="filename" value="meshes/map_2_osm_forest-itu_wood-001.ply" />
+		<boolean name="face_normals" value="true" />
+		<ref id="mat-itu_wood" name="bsdf" />
+	</shape>
+	<shape type="ply" id="forest3" name="forest3">
+		<string name="filename" value="meshes/map_2_osm_forest-itu_wood-002.ply" />
+		<boolean name="face_normals" value="true" />
+		<ref id="mat-itu_wood" name="bsdf" />
+	</shape>
+	<shape type="ply" name="elm__3" id="elm__3">
+			<string name="filename" value="/data/hw/sionna/ws/scenes/HSV_sinnario/meshes/map_2_osm_roads_motorway.ply" />
+			<ref id="mat-itu_concrete" name="bsdf" />
+		<transform name="to_world">
+			<matrix value="1.423470 0.069454 0.000637 0.572919 -0.099005 0.998596 0.000253 0.000000 -0.000881 -0.000297 1.000000 0.500000 0.000000 0.000000 0.000000 1.000000" />
+		</transform>
+	</shape>
+	<shape type="ply" name="elm__5" id="elm__5">
+			<string name="filename" value="/data/hw/sionna/ws/scenes/HSV_sinnario/meshes/map_2_osm_roads_service.ply" />
+			<ref id="mat-itu_concrete" name="bsdf" />
+		<transform name="to_world">
+			<matrix value="0.998888 0.047148 0.000631 0.000000 -0.047148 0.998888 0.000268 0.000000 -0.000617 -0.000297 1.000000 10.000000 0.000000 0.000000 0.000000 1.000000" />
+		</transform>
+	</shape>
+	<shape type="ply" name="main_road" id="main_road">
+			<string name="filename" value="/data/hw/sionna/ws/scenes/HSV_sinnario/meshes/map_2_osm_roads_main.ply" />
+			<ref id="mat-itu_concrete" name="bsdf" />
+		<transform name="to_world">
+			<matrix value="1.467472 0.076065 0.015996 -4.075362 -0.111816 0.998405 -0.000594 0.000000 -0.023543 -0.000623 0.999872 0.500000 0.000000 0.000000 0.000000 1.000000" />
+		</transform>
+	</shape>
+	</scene>
