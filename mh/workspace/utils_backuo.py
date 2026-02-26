@@ -230,7 +230,7 @@ def setup_scene_for_vehicle_path(scene,
                                  tx_positions=None,
                                  tx_names=None,
                                  tx_power_dbm: float = 43.0,
-                                 display_radius: float = 0.3):
+                                 display_radius: float = 10.0):
     """이동 경로 시뮬레이션용 Tx/Rx와 solver를 초기화한다."""
     if hasattr(scene, "transmitters"):
         for name in list(scene.transmitters.keys()):
@@ -238,10 +238,6 @@ def setup_scene_for_vehicle_path(scene,
     if hasattr(scene, "receivers"):
         for name in list(scene.receivers.keys()):
             scene.remove(name)
-
-    # 한글 주석: 이전에 추가한 시각화용 자동차가 있으면 제거
-    if "visual_rx_car" in scene.objects:
-        scene.edit(remove=["visual_rx_car"])
 
     scene.tx_array = PlanarArray(num_rows=1, num_cols=1, pattern="iso", polarization="VH")
     scene.rx_array = PlanarArray(num_rows=1, num_cols=1, pattern="iso", polarization="VH")
@@ -263,25 +259,12 @@ def setup_scene_for_vehicle_path(scene,
         scene.add(tx)
 
     start_pos, start_vel = get_state_at_time(path_data, 0.0)
-
-    # 채널 계산용 Rx (보여지는 원은 최소화)
     rx = Receiver(name="rx_car", position=start_pos, velocity=start_vel, display_radius=display_radius)
     rx.receive_antenna = scene.rx_array
     scene.add(rx)
 
-    # 한글 주석: 시각화용 자동차 메시를 별도로 추가
-    car_material = ITURadioMaterial("rx_car_metal", "metal", thickness=0.01, color=(0.8, 0.1, 0.1))
-    visual_car = SceneObject(
-        fname=sionna.rt.scene.low_poly_car,
-        name="visual_rx_car",
-        radio_material=car_material
-    )
-    scene.edit(add=[visual_car])
-    visual_car.position = start_pos.tolist()
-    visual_car.scale = [1.2, 1.2, 1.2]
-
     solver = PathSolver()
-    return tx_names, rx, visual_car, solver
+    return tx_names, rx, solver
 
 
 def create_vehicle_simulation_widgets(scene,
@@ -289,7 +272,6 @@ def create_vehicle_simulation_widgets(scene,
                                       tx_names,
                                       rx,
                                       solver,
-                                      visual_car=None,
                                       max_depth: int = 3,
                                       max_num_paths_per_src: int = 10,
                                       samples_per_src: int = 100000,
@@ -308,11 +290,6 @@ def create_vehicle_simulation_widgets(scene,
         # 한글 주석: 위치/속도를 매 프레임 업데이트해 도플러를 반영
         rx.position = current_pos
         rx.velocity = current_vel
-
-        # 한글 주석: Rx 위치를 시각화용 자동차 메시에도 동기화
-        if visual_car is not None:
-            visual_car.position = current_pos.tolist()
-
         for name in tx_names:
             scene.transmitters[name].look_at(current_pos)
 
