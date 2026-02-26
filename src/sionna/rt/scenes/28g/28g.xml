@@ -68,25 +68,13 @@
 			<matrix value="0.997384 0.072291 0.000000 0.000000 -0.072291 0.997384 0.000000 0.000000 0.000000 0.000000 1.000000 0.300000 0.000000 0.000000 0.000000 1.000000"/>
 		</transform>
 	</shape>
-	<shape type="shapegroup" id="mesh-road_2" name="mesh-road_2">
-		<shape type="ply" name="road_2">
-			<string name="filename" value="meshes/road_2.ply"/>
+	<shape type="shapegroup" id="mesh-road_1" name="mesh-road_1">
+		<shape type="ply" name="road_1">
+			<string name="filename" value="meshes/road_1.ply"/>
 			<ref id="mat-itu_concrete_2" name="bsdf"/>
 		</shape>
 	</shape>
 	<shape type="instance" id="elm__6" name="elm__6">
-		<ref id="mesh-road_2" name="shape"/>
-		<transform name="to_world">
-			<matrix value="0.997384 0.072291 0.000000 0.000000 -0.072291 0.997384 0.000000 0.000000 0.000000 0.000000 1.000000 0.300000 0.000000 0.000000 0.000000 1.000000"/>
-		</transform>
-	</shape>
-	<shape type="shapegroup" id="mesh-road_1" name="mesh-road_1">
-		<shape type="ply" name="road_1">
-			<string name="filename" value="meshes/road_1.ply"/>
-			<ref id="mat-itu_concrete_1" name="bsdf"/>
-		</shape>
-	</shape>
-	<shape type="instance" id="elm__8" name="elm__8">
 		<ref id="mesh-road_1" name="shape"/>
 		<transform name="to_world">
 			<matrix value="0.997384 0.072291 0.000000 0.000000 -0.072291 0.997384 0.000000 0.000000 0.000000 0.000000 1.000000 0.300000 0.000000 0.000000 0.000000 1.000000"/>

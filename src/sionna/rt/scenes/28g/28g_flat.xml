@@ -90,13 +90,6 @@
 		</transform>
 	</shape>
 	<shape type="ply" name="elm__6" id="elm__6">
-			<string name="filename" value="/home/js/js/sionna-rt/src/sionna/rt/scenes/28g/meshes/road_2.ply" />
-			<ref id="mat-itu_concrete" name="bsdf" />
-		<transform name="to_world">
-			<matrix value="0.997384 0.072291 0.000000 0.000000 -0.072291 0.997384 0.000000 0.000000 0.000000 0.000000 1.000000 0.300000 0.000000 0.000000 0.000000 1.000000" />
-		</transform>
-	</shape>
-	<shape type="ply" name="elm__8" id="elm__8">
 			<string name="filename" value="/home/js/js/sionna-rt/src/sionna/rt/scenes/28g/meshes/road_1.ply" />
 			<ref id="mat-itu_concrete" name="bsdf" />
 		<transform name="to_world">

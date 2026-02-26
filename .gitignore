@@ -8,3 +8,7 @@ __pycache__/
 .eggs/
 .ipynb_checkpoints
 *.nsys-rep
+*.mp4
+*.png
+*.jpg
+*.jpeg

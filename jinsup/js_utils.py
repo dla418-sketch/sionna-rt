@@ -8,6 +8,7 @@ import tensorflow as tf
 import ipywidgets as widgets
 import matplotlib.pyplot as plt
 import pandas as pd
+import imageio
 from IPython.display import display
 import plotly.graph_objects as go
 from sionna.rt import PlanarArray, Transmitter, Receiver, PathSolver
@@ -230,14 +231,25 @@ def setup_scene_for_vehicle_path(scene,
                                  tx_positions=None,
                                  tx_names=None,
                                  tx_power_dbm: float = 43.0,
-                                 display_radius: float = 10.0):
-    """이동 경로 시뮬레이션용 Tx/Rx와 solver를 초기화한다."""
+                                 display_radius: float = 10.0,
+                                 add_vehicle: bool = False,
+                                 vehicle_name: str = "rx_vehicle",
+                                 vehicle_scale=(2.5, 2.5, 2.5),
+                                 vehicle_material_name: str = "car_material_rt",
+                                 vehicle_z: float = 2.5,
+                                 rx_z: float = 3.0,
+                                 vehicle_rot_offset: float = 90.0):
+    """이동 경로 시뮬레이션용 Tx/Rx(+옵션 자동차 Mesh)와 solver를 초기화한다."""
     if hasattr(scene, "transmitters"):
         for name in list(scene.transmitters.keys()):
             scene.remove(name)
     if hasattr(scene, "receivers"):
         for name in list(scene.receivers.keys()):
             scene.remove(name)
+
+    # 한글 주석: 기존 차량 Mesh가 있으면 먼저 제거
+    if add_vehicle and hasattr(scene, "objects") and vehicle_name in scene.objects:
+        scene.edit(remove=vehicle_name)
 
     scene.tx_array = PlanarArray(num_rows=1, num_cols=1, pattern="iso", polarization="VH")
     scene.rx_array = PlanarArray(num_rows=1, num_cols=1, pattern="iso", polarization="VH")
@@ -259,19 +271,50 @@ def setup_scene_for_vehicle_path(scene,
         scene.add(tx)
 
     start_pos, start_vel = get_state_at_time(path_data, 0.0)
-    rx = Receiver(name="rx_car", position=start_pos, velocity=start_vel, display_radius=display_radius)
+    rx_start = np.array([float(start_pos[0]), float(start_pos[1]), float(rx_z)], dtype=np.float32)
+
+    rx = Receiver(name="rx_car", position=rx_start, velocity=start_vel, display_radius=display_radius)
     rx.receive_antenna = scene.rx_array
     scene.add(rx)
 
-    solver = PathSolver()
-    return tx_names, rx, solver
+    vehicle = None
+    if add_vehicle:
+        import sionna.rt
+        from sionna.rt import ITURadioMaterial, SceneObject
 
+        # 한글 주석: 차량 재질이 없으면 생성, 있으면 재사용
+        if vehicle_material_name in scene.radio_materials:
+            car_material = scene.radio_materials[vehicle_material_name]
+        else:
+            car_material = ITURadioMaterial(
+                name=vehicle_material_name,
+                itu_type="metal",
+                thickness=0.01,
+                color=(0.85, 0.15, 0.15),
+            )
+            scene.add(car_material)
+
+        vehicle = SceneObject(
+            fname=sionna.rt.scene.low_poly_car,
+            name=vehicle_name,
+            radio_material=car_material,
+        )
+        scene.edit(add=[vehicle])
+        vehicle.scaling = mi.Vector3f(float(vehicle_scale[0]), float(vehicle_scale[1]), float(vehicle_scale[2]))
+        vehicle.position = mi.Vector3f(float(start_pos[0]), float(start_pos[1]), float(vehicle_z))
+        vehicle.orientation = mi.Point3f(0.0, 0.0, 1.57079632679) # 90도 회전 (np.pi/2)
+
+    solver = PathSolver()
+    return tx_names, rx, solver, vehicle
 
 def create_vehicle_simulation_widgets(scene,
                                       path_data,
                                       tx_names,
                                       rx,
                                       solver,
+                                      vehicle=None,
+                                      vehicle_z: float = 2.5,
+                                      rx_z: float = 3.0,
                                       max_depth: int = 3,
                                       max_num_paths_per_src: int = 10,
                                       samples_per_src: int = 100000,
@@ -287,9 +330,12 @@ def create_vehicle_simulation_widgets(scene,
         t = float(time_steps[frame_idx])
         current_pos, current_vel = get_state_at_time(path_data, t)
 
-        # 한글 주석: 위치/속도를 매 프레임 업데이트해 도플러를 반영
-        rx.position = current_pos
+        # 한글 주석: Rx와 차량 Mesh를 같은 XY로 동기 이동
+        rx.position = np.array([float(current_pos[0]), float(current_pos[1]), float(rx_z)], dtype=np.float32)
         rx.velocity = current_vel
+        if vehicle is not None:
+            vehicle.position = mi.Vector3f(float(current_pos[0]), float(current_pos[1]), float(vehicle_z))
+
         for name in tx_names:
             scene.transmitters[name].look_at(current_pos)
 
@@ -328,14 +374,15 @@ def create_vehicle_simulation_widgets(scene,
     widgets.interactive_output(update_simulation, {"frame_idx": slider})
     return slider, output_widget
 
-def create_taps_pdp_widgets(scene, rx, solver, path_data, tx_names, 
-                            bandwidth, l_min, l_max, sampling_frequency, num_time_steps):
+def create_taps_pdp_widgets(scene, rx, solver, path_data, tx_names,
+                            bandwidth, l_min, l_max, sampling_frequency, num_time_steps,
+                            vehicle=None, vehicle_z: float = 2.5, rx_z: float = 3.0):
     """
     Taps 기반의 PDP(Power Delay Profile)를 시각화하는 인터랙티브 위젯을 생성합니다.
     (위에는 그림, 아래에는 표가 출력됩니다.)
     """
     time_steps = path_data["time_steps"]
-    
+
     # 캐시: (frame_idx, tx_idx, rel_delay) -> (t, pos, df)
     _taps_cache = {}
 
@@ -372,13 +419,15 @@ def create_taps_pdp_widgets(scene, rx, solver, path_data, tx_names,
         t = float(time_steps[frame_idx])
         pos, vel = get_state_at_time(path_data, t)
 
-        # Rx 위치/방향 갱신
-        rx.position = pos
+        # 한글 주석: Rx와 차량 Mesh를 같은 XY로 동기 이동
+        rx.position = np.array([float(pos[0]), float(pos[1]), float(rx_z)], dtype=np.float32)
         rx.velocity = vel
+        if vehicle is not None:
+            vehicle.position = mi.Vector3f(float(pos[0]), float(pos[1]), float(vehicle_z))
+
         for name in tx_names:
             scene.transmitters[name].look_at(pos)
 
-        # 경로 계산
         paths = solver(
             scene,
             max_depth=3,
@@ -388,7 +437,6 @@ def create_taps_pdp_widgets(scene, rx, solver, path_data, tx_names,
             synthetic_array=True
         )
 
-        # taps 계산 (TF 텐서)
         h = paths.taps(
             bandwidth=bandwidth,
             l_min=l_min,
@@ -400,13 +448,12 @@ def create_taps_pdp_widgets(scene, rx, solver, path_data, tx_names,
             out_type="tf"
         )
 
-        # Rx=0, 선택 Tx, time=0에서 안테나 축 합산해 PDP 생성
-        h_sel = h[0, :, tx_idx, :, 0, :]                         
-        pdp = tf.reduce_sum(tf.abs(h_sel)**2, axis=[0, 1])       
+        h_sel = h[0, :, tx_idx, :, 0, :]
+        pdp = tf.reduce_sum(tf.abs(h_sel)**2, axis=[0, 1])
         pdp_np = pdp.numpy()
 
         tap_idx = np.arange(l_min, l_max + 1, dtype=int)
-        tau_ns = (tap_idx / bandwidth) * 1e9                     
+        tau_ns = (tap_idx / bandwidth) * 1e9
 
         valid = np.isfinite(pdp_np) & (pdp_np > 0)
         if np.sum(valid) == 0:
@@ -450,7 +497,6 @@ def create_taps_pdp_widgets(scene, rx, solver, path_data, tx_names,
                 print(f"pos={pos}")
                 return
 
-            # 그림부터 출력
             plt.figure(figsize=(8, 3.6))
             plt.stem(df["tau_ns"].values, df["pdp_db"].values, basefmt=" ")
             for x, y, tap in zip(df["tau_ns"].values, df["pdp_db"].values, df["tap_idx"].values):
@@ -461,12 +507,10 @@ def create_taps_pdp_widgets(scene, rx, solver, path_data, tx_names,
             plt.title(f"{tx_names[tx_idx]} taps-PDP at t={t:.2f}s | frame={frame_idx}\npos={pos}")
             plt.grid(True)
             plt.show()
-            
-            # 표 출력
+
             print("\n[ Taps Data Table ]")
             display(df)
 
-    # 위젯 이벤트 연결
     frame_slider.observe(_update_plot, names="value")
     tx_dropdown.observe(_update_plot, names="value")
     rel_delay_chk.observe(_update_plot, names="value")
@@ -475,17 +519,21 @@ def create_taps_pdp_widgets(scene, rx, solver, path_data, tx_names,
     return widgets.VBox([widgets.HBox([frame_slider, tx_dropdown]), rel_delay_chk, out])
 
 def export_simulation_video(scene, rx, solver, path_data, tx_names, camera,
+                            vehicle=None,
+                            vehicle_z: float = 2.5,
+                            rx_z: float = 3.0,
                             filename="simulation_output.mp4",
-                            fps=10, 
+                            fps=10,
                             resolution=(800, 600),
                             max_depth=3,
-                            samples_per_src=100000):
+                            samples_per_src=100000,
+                            white_background: bool = True):
     """
-    모든 프레임에 대해 시뮬레이션을 돌리고 주어진 고정 카메라(camera)의 화면을 mp4 애니메이션으로 저장합니다.
-    (시간이 꽤 소요될 수 있습니다.)
+    모든 프레임에 대해 시뮬레이션을 돌리고 고정 카메라 화면을 mp4로 저장합니다.
+    white_background=True이면 RGBA 프레임을 흰 배경으로 합성해 저장합니다.
     """
     import imageio
-    
+
     time_steps = path_data["time_steps"]
     total_frames = len(time_steps)
     print(f"🎥 애니메이션 렌더링 시작... (총 {total_frames} 프레임)")
@@ -497,8 +545,14 @@ def export_simulation_video(scene, rx, solver, path_data, tx_names, camera,
         t_float = float(t)
         current_pos, current_vel = get_state_at_time(path_data, t_float)
 
-        rx.position = current_pos
+        # 한글 주석: Rx 위치/속도 갱신
+        rx.position = np.array([float(current_pos[0]), float(current_pos[1]), float(rx_z)], dtype=np.float32)
         rx.velocity = current_vel
+
+        # 한글 주석: 차량 Mesh가 있으면 Rx와 같은 XY로 동기 이동
+        if vehicle is not None:
+            vehicle.position = mi.Vector3f(float(current_pos[0]), float(current_pos[1]), float(vehicle_z))
+
         for name in tx_names:
             scene.transmitters[name].look_at(current_pos)
 
@@ -512,17 +566,42 @@ def export_simulation_video(scene, rx, solver, path_data, tx_names, camera,
         )
 
         try:
-            # Sionna 버전에 맞춰 render() 함수 사용 후 numpy 변환
-            img_bitmap = scene.render(camera=camera, paths=paths, resolution=resolution, show_devices=True, return_bitmap=True)
-            img = np.array(img_bitmap)
-            
-            img_uint8 = np.clip(img * 255.0, 0, 255).astype(np.uint8)
+            # 한글 주석: 렌더링 결과를 numpy로 변환
+            img_bitmap = scene.render(
+                camera=camera,
+                paths=paths,
+                resolution=resolution,
+                show_devices=True,
+                return_bitmap=True
+            )
+            img = np.array(img_bitmap, dtype=np.float32)
+
+            # 한글 주석: RGBA면 알파를 흰 배경에 합성해서 검은 바닥 문제를 제거
+            if img.ndim == 3 and img.shape[-1] == 4:
+                rgb = img[..., :3]
+                alpha = img[..., 3:4]
+                if white_background:
+                    bg = np.ones_like(rgb, dtype=np.float32)  # 흰 배경
+                    rgb = rgb * alpha + bg * (1.0 - alpha)
+                img_out = rgb
+            elif img.ndim == 3 and img.shape[-1] >= 3:
+                img_out = img[..., :3]
+            else:
+                # 한글 주석: 비정상 shape 방어 처리
+                img_out = np.stack([img, img, img], axis=-1) if img.ndim == 2 else img
+
+            img_uint8 = np.clip(img_out * 255.0, 0, 255).astype(np.uint8)
             writer.append_data(img_uint8)
+
             print(f"  -> 프레임 렌더링 완료: {frame_idx + 1}/{total_frames} ({(frame_idx+1)/total_frames*100:.1f}%)")
         except Exception as e:
             print(f"프레임 {frame_idx} 렌더링 중 에러 발생: {e}")
             break
 
     writer.close()
-    scene.remove("recorder_cam")
+
+    # 한글 주석: recorder_cam이 있을 때만 제거
+    if hasattr(scene, "cameras") and ("recorder_cam" in scene.cameras):
+        scene.remove("recorder_cam")
+
     print(f"🎬 렌더링 완료! '{filename}' 파일이 생성되었습니다.")
