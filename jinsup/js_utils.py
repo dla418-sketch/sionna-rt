@@ -473,3 +473,56 @@ def create_taps_pdp_widgets(scene, rx, solver, path_data, tx_names,
 
     _update_plot()
     return widgets.VBox([widgets.HBox([frame_slider, tx_dropdown]), rel_delay_chk, out])
+
+def export_simulation_video(scene, rx, solver, path_data, tx_names, camera,
+                            filename="simulation_output.mp4",
+                            fps=10, 
+                            resolution=(800, 600),
+                            max_depth=3,
+                            samples_per_src=100000):
+    """
+    모든 프레임에 대해 시뮬레이션을 돌리고 주어진 고정 카메라(camera)의 화면을 mp4 애니메이션으로 저장합니다.
+    (시간이 꽤 소요될 수 있습니다.)
+    """
+    import imageio
+    
+    time_steps = path_data["time_steps"]
+    total_frames = len(time_steps)
+    print(f"🎥 애니메이션 렌더링 시작... (총 {total_frames} 프레임)")
+    print(f"저장 경로: {filename}")
+
+    writer = imageio.get_writer(filename, fps=fps)
+
+    for frame_idx, t in enumerate(time_steps):
+        t_float = float(t)
+        current_pos, current_vel = get_state_at_time(path_data, t_float)
+
+        rx.position = current_pos
+        rx.velocity = current_vel
+        for name in tx_names:
+            scene.transmitters[name].look_at(current_pos)
+
+        paths = solver(
+            scene,
+            max_depth=max_depth,
+            samples_per_src=samples_per_src,
+            diffuse_reflection=True,
+            diffraction=True,
+            synthetic_array=True
+        )
+
+        try:
+            # Sionna 버전에 맞춰 render() 함수 사용 후 numpy 변환
+            img_bitmap = scene.render(camera=camera, paths=paths, resolution=resolution, show_devices=True, return_bitmap=True)
+            img = np.array(img_bitmap)
+            
+            img_uint8 = np.clip(img * 255.0, 0, 255).astype(np.uint8)
+            writer.append_data(img_uint8)
+            print(f"  -> 프레임 렌더링 완료: {frame_idx + 1}/{total_frames} ({(frame_idx+1)/total_frames*100:.1f}%)")
+        except Exception as e:
+            print(f"프레임 {frame_idx} 렌더링 중 에러 발생: {e}")
+            break
+
+    writer.close()
+    scene.remove("recorder_cam")
+    print(f"🎬 렌더링 완료! '{filename}' 파일이 생성되었습니다.")

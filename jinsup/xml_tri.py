@@ -17,9 +17,9 @@ import re
 import xml.etree.ElementTree as ET
 
 # Backward-compatible defaults
-BASE_DIR = Path("/home/js/js/sionna-rt/src/sionna/rt/scenes/etri")
-INPUT_XML = BASE_DIR / "etri_260224.xml"
-OUTPUT_XML = BASE_DIR / "etri_260224_flat.xml"
+BASE_DIR = Path("/home/js/js/sionna-rt/src/sionna/rt/scenes/28g")
+INPUT_XML = BASE_DIR / "28g.xml"
+OUTPUT_XML = BASE_DIR / "28g_flat.xml"
 
 VALID_ITU_TYPES = {
     "concrete",
