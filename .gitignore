@@ -10,5 +10,6 @@ __pycache__/
 /data1/mh/sionna/sionna-rt/tutorials/build code/paper
 *.npy
 *.npz
+*.csv
 *.png
 *.mp4

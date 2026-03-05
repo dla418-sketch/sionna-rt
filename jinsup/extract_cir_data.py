@@ -1,4 +1,5 @@
 """jinsup 시뮬레이션 설정을 재사용해 프레임별 CIR/PDP 데이터를 저장하는 스크립트."""
+
 from __future__ import annotations
 
 import argparse
@@ -173,42 +174,39 @@ def _extract_1d_paths_from_cir(a, tau):
     a_np = a.numpy() if hasattr(a, "numpy") else np.asarray(a)
     tau_np = tau.numpy() if hasattr(tau, "numpy") else np.asarray(tau)
 
-    # 한글 주석: tau는 항상 1D path 축으로 평탄화한다(경로 1개면 길이 1).
-    tau_1d = np.ravel(np.squeeze(tau_np)).astype(np.float64)
-    if tau_1d.ndim == 0:
-        tau_1d = tau_1d.reshape(1)
-    p = int(tau_1d.shape[0])
+    a_np = np.squeeze(a_np)
+    tau_np = np.squeeze(tau_np)
 
-    # 한글 주석: a에서 path 길이(p)와 일치하는 축을 찾아 첫 링크/안테나 조합을 선택한다.
-    a_sq = np.squeeze(a_np)
-    if p == 0:
-        return np.zeros((0,), dtype=np.complex128), tau_1d
+    # 한글 주석: 경로가 1개인 프레임은 squeeze 후 스칼라가 될 수 있다.
+    if tau_np.ndim == 0:
+        tau_np = tau_np.reshape(1)
 
-    if np.ndim(a_sq) == 0:
+    while tau_np.ndim > 1:
+        tau_np = tau_np[0]
+
+    while a_np.ndim > 2:
+        a_np = a_np[0]
+
+    p = tau_np.shape[0]
+    if a_np.ndim == 0:
         if p != 1:
-            raise ValueError(f"a/tau path size mismatch: a={np.shape(a_sq)}, tau={tau_1d.shape}")
-        a_path = np.asarray([a_sq], dtype=np.complex128)
-        return a_path, tau_1d
-
-    shape = np.shape(a_sq)
-    candidate_axes = [ax for ax, size in enumerate(shape) if size == p]
-
-    if candidate_axes:
-        path_axis = candidate_axes[-1]
-        moved = np.moveaxis(a_sq, path_axis, 0).reshape(p, -1)
-        a_path = moved[:, 0]
-    else:
-        flat = np.ravel(a_sq)
-        if p == 1:
-            a_path = flat[:1]
-        elif flat.size == p:
-            a_path = flat
-        elif flat.size > p:
-            a_path = flat[:p]
+            raise ValueError(f"a/tau path size mismatch: a={a_np.shape}, tau={tau_np.shape}")
+        a_path = np.asarray([a_np], dtype=np.complex128)
+    elif a_np.ndim == 1:
+        if a_np.shape[0] != p:
+            raise ValueError(f"a/tau path size mismatch: a={a_np.shape}, tau={tau_np.shape}")
+        a_path = a_np
+    elif a_np.ndim == 2:
+        if a_np.shape[0] == p:
+            a_path = a_np[:, 0]
+        elif a_np.shape[1] == p:
+            a_path = a_np[0, :]
         else:
-            raise ValueError(f"cannot align a with tau: a={shape}, tau={tau_1d.shape}")
+            raise ValueError(f"cannot align a with tau: a={a_np.shape}, tau={tau_np.shape}")
+    else:
+        raise ValueError(f"unexpected a shape after squeeze: {a_np.shape}")
 
-    return np.asarray(a_path, dtype=np.complex128), tau_1d
+    return a_path.astype(np.complex128), tau_np.astype(np.float64)
 
 
 def _map_paths_to_cir_bins(paths, bandwidth: float, l_min: int, l_max: int):
